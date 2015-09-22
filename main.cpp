@@ -45,6 +45,10 @@
 #include <iostream>
 #include <vector>
 #include <stdio.h>
+#include <string>
+#include <sstream>
+#include <fstream>
+#include <stdlib.h>
 #include "current_state.h"
 #include "priority_queue.h"
 
@@ -53,7 +57,8 @@ using namespace std;
 /////////////////////////////
 /// Function Declarations ///
 
-CurrentState* Astar();
+CurrentState* Astar(int startS[9], int finishS[9]);
+bool isFinishState(int** state, int finishState[9]);
 
 
 ////////////////////////
@@ -65,10 +70,46 @@ int NODES_EXP = 0;
 
 int main()
 {
+	/////////////////////////////////////////////////
+	/// Get current and final state from the user ///
+	
+	cout << "Enter the start and desired finish state of the game.\n" <<
+		"Enter the states as a string of comma or space separated numbers:\n" <<
+		"Enter a 0 for the location that is to have the space.\n"
+		"ex: 4, 5, 3, 7, 2, 8, 1, 6, 0 or 4 5 3 7 2 8 1 6 0" << endl;
+	string states;
+	getline(cin, states);
+
+	stringstream ss(states);
+	int in;
+	int startS[9];
+	int finishS[9];
+
+	int countS = 0;
+	int countF = 0;
+	while (ss >> in)
+	{
+		if (countS < 9)
+		{
+			startS[countS++] = in;
+
+			if (ss.peek() == ',' || ss.peek() == ' ')
+				ss.ignore();
+		}
+		else
+		{
+			finishS[countF++] = in;
+
+			if (ss.peek() == ',' || ss.peek() == ' ')
+				ss.ignore();
+		}
+			
+	}	
+
 	//////////////////////////////////////////
 	////  Call the A* Function    ////////////
 
-	CurrentState* finalState = Astar();
+	CurrentState* finalState = Astar(startS, finishS);
 
 
 
@@ -76,7 +117,7 @@ int main()
 	//////   If solution not found    ////////
 
 	if (finalState == NULL)
-		cout << "\n\nFailed\n\n" << endl;
+		cout << "\n\nNo Solution Found\n\n" << endl;
 
 
 	//////////////////////////////////////////
@@ -133,12 +174,51 @@ int main()
 			}
 			cout << "\n\n";
 		}
+
+		///////////////////////////////////////////////////////////////////////////
+		/// Redirect std::cout to write the results to a file for easy printing ///
+
+		filebuf f;
+		f.open("output.txt", std::ios::out);
+		streambuf* o = cout.rdbuf(&f);
+
+		cout << "\n\nFound Solution!!\n" << endl
+			<< "Nodes Generated: " << NODES_GEN
+			<< "\nNodes Expanded: " << NODES_EXP << "\n\n";
+
+		for (int i = revSequence.size() - 1; i >= 0; i--)
+		{
+			cout << " ____ ____ ____\n";
+			for (int k = 0; k < 3; k++)
+			{
+				for (int l = 0; l < 3; l++)
+				{
+					if (l < 2)
+					{
+						if (revSequence[i]->state[k][l] != 0)
+							cout << "| " << revSequence[i]->state[k][l] << "  ";
+						else
+							cout << "|    ";
+					}
+					else
+					{
+						if (revSequence[i]->state[k][l] != 0)
+							cout << "| " << revSequence[i]->state[k][l] << "  |";
+						else
+							cout << "|    |";
+					}
+
+				}
+				cout << "\n|____|____|____|\n";
+			}
+			cout << "\n\n";
+		}
 	}
 
 	return 0;
 }
 
-CurrentState* Astar()
+CurrentState* Astar(int startS[9], int finishS[9])
 {
 	///////////////////////////////////////////////////////////////////////////////////////////////
 	/// Enter your starting game state here, the constructor for CurrentState is overloaded		///
@@ -150,18 +230,18 @@ CurrentState* Astar()
 	/// So use the data type you prefere.														///
 	///////////////////////////////////////////////////////////////////////////////////////////////
 
-	int initialState[9] = { 3, 1, 2, 4, 7, 5, 6, 8, 0 };    // Simple state, finishes immediately
-															//int initialState[9] = { 5, 4, 0, 6, 1, 8, 7, 3, 2 };	// This state takes about 27 seconds to find the correct answer
-															//int initialState[9] = { 7, 2, 4, 5, 0, 6, 8, 3, 1 };	// This state takes about 27 seconds to find the correct answer
+	//int initialState[9] = { 3, 1, 2, 4, 7, 5, 6, 8, 0 };		// Simple state, finishes immediately
+	//int initialState[9] = { 5, 4, 0, 6, 1, 8, 7, 3, 2 };		// This state takes about 27 seconds to find the correct answer
+	//int initialState[9] = { 7, 2, 4, 5, 0, 6, 8, 3, 1 };		// This state takes about 27 seconds to find the correct answer
 
-															// A* evaluates the correctness of each state with a function, f(n) = g(n) + h(n), where g(n) is the step cost from the root node
-															// and h(n) is the heuristic value of the state, implemented here with the 'Manhatten Distance'.
-															// depth is the g(n) value, it represents each level in the tree structure, so it starts at 0 and will increment by 1 each level dropped
-															// in the tree
+	// A* evaluates the correctness of each state with a function, f(n) = g(n) + h(n), where g(n) is the step cost from the root node
+	// and h(n) is the heuristic value of the state, implemented here with the 'Manhatten Distance'.
+	// depth is the g(n) value, it represents each level in the tree structure, so it starts at 0 and will increment by 1 each level dropped
+	// in the tree
 	int depth = 0;
 
 	// Create the root node with the current state and depth
-	CurrentState* root = new CurrentState(initialState, depth);
+	CurrentState* root = new CurrentState(startS, depth);
 
 	// Create a priority queue (implemented with a min heap) and add to it the root state
 	PriorityQueue<CurrentState>* queue = new PriorityQueue<CurrentState>(root);
@@ -181,7 +261,11 @@ CurrentState* Astar()
 		NODES_EXP++;
 
 		// Check to see if the node is in the finished state
-		if (bestNode->checkFinishedState())
+		/*if (bestNode->checkFinishedState())
+			return bestNode;*/
+
+		//int** ttttt = bestNode->getState()
+		if (isFinishState((bestNode->getState()), finishS))
 			return bestNode;
 
 		/////////////////////////////////////////////
@@ -221,42 +305,6 @@ CurrentState* Astar()
 
 			// Set the parent of the new state
 			leftState->setParent(bestNode);
-
-			// Check all ancestors of the new node and make sure it is not a duplicate state
-			//CurrentState* parent = leftState->getParent();
-			//bool same = true;
-			//while (parent != NULL)
-			//{
-			//	same = true;
-			//	// Check states
-			//	for (int i = 0; i < 3; i++)
-			//	{
-			//		for (int j = 0; j < 3; j++)
-			//		{
-			//			if (leftState->state[i][j] != parent->state[i][j])
-			//			{
-			//				// Not same states
-			//				same = false;
-			//				break;
-			//			}
-			//		}
-			//		if (!same)
-			//			break;
-			//	}
-			//	parent = parent->getParent();
-			//}
-
-			//// If it is not a dup state then add it to the queue
-			//if (!same)
-			//{
-			//	queue->add(leftState);
-			//	NODES_GEN++;
-			//}
-
-
-			//// If it is a dup state delete it from the heap
-			//else
-			//	delete leftState;
 			queue->add(leftState, NODES_GEN);
 
 		}
@@ -275,39 +323,6 @@ CurrentState* Astar()
 
 			CurrentState* rightState = new CurrentState(parentArray, depth);
 			rightState->setParent(bestNode);
-
-			//// Check for same state in ancestor nodes
-			//CurrentState* parent = rightState->getParent();
-			//bool same = true;
-			//while (parent != NULL)
-			//{
-			//	same = true;
-			//	// Check states
-			//	for (int i = 0; i < 3; i++)
-			//	{
-			//		for (int j = 0; j < 3; j++)
-			//		{
-			//			if (rightState->state[i][j] != parent->state[i][j])
-			//			{
-			//				// Not same states
-			//				same = false;
-			//				break;
-			//			}
-			//		}
-			//		if (!same)
-			//			break;
-			//	}
-			//	parent = parent->getParent();
-			//}
-
-			//if (!same)
-			//{
-			//	queue->add(rightState);
-			//	NODES_GEN++;
-			//}
-
-			//else
-			//	delete rightState;
 			queue->add(rightState, NODES_GEN);
 		}
 
@@ -326,39 +341,6 @@ CurrentState* Astar()
 
 			CurrentState* upState = new CurrentState(parentArray, depth);
 			upState->setParent(bestNode);
-
-			//// Check for same state in ancestor nodes
-			//CurrentState* parent = upState->getParent();
-			//bool same = true;
-			//while (parent != NULL)
-			//{
-			//	same = true;
-			//	// Check states
-			//	for (int i = 0; i < 3; i++)
-			//	{
-			//		for (int j = 0; j < 3; j++)
-			//		{
-			//			if (upState->state[i][j] != parent->state[i][j])
-			//			{
-			//				// Not same states
-			//				same = false;
-			//				break;
-			//			}
-			//		}
-			//		if (!same)
-			//			break;
-			//	}
-			//	parent = parent->getParent();
-			//}
-
-			//if (!same)
-			//{
-			//	queue->add(upState);
-			//	NODES_GEN++;
-			//}
-
-			//else
-			//	delete upState;
 
 			queue->add(upState, NODES_GEN);
 		}
@@ -379,44 +361,32 @@ CurrentState* Astar()
 			CurrentState* downState = new CurrentState(parentArray, depth);
 			downState->setParent(bestNode);
 
-
-			//// Check for same state in ancestor nodes
-			//CurrentState* parent = downState->getParent();
-			//bool same = true;
-			//while (parent != NULL)
-			//{
-			//	same = true;
-			//	// Check states
-			//	for (int i = 0; i < 3; i++)
-			//	{
-			//		for (int j = 0; j < 3; j++)
-			//		{
-			//			if (downState->state[i][j] != parent->state[i][j])
-			//			{
-			//				// Not same states
-			//				same = false;
-			//				break;
-			//			}
-			//		}
-			//		if (!same)
-			//			break;
-			//	}
-			//	parent = parent->getParent();
-			//}
-
-			//if (!same)
-			//{
-			//	queue->add(downState);
-			//	NODES_GEN++;
-			//}
-
-			//else
-			//	delete downState;
-
 			queue->add(downState, NODES_GEN);
 		}
 	}
 
 	// If the queue is empty and no winning state has been found
 	return NULL;
+}
+
+bool isFinishState(int** state, int finishState[9])
+{
+	bool winner = false;
+
+	//////////////////////////////////////////////////////
+	/// Code to check agains user defined finish state ///
+	if (state[0][0] == finishState[0] &&
+		state[0][1] == finishState[1] &&
+		state[0][2] == finishState[2] &&
+		state[1][0] == finishState[3] &&
+		state[1][1] == finishState[4] &&
+		state[1][2] == finishState[5] &&
+		state[2][0] == finishState[6] &&
+		state[2][1] == finishState[7] &&
+		state[2][2] == finishState[8])
+		winner = true;
+	else
+		winner = false;
+
+	return winner;
 }

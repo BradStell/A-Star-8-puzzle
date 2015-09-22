@@ -144,6 +144,8 @@ bool CurrentState::checkFinishedState()
 {
 	bool winner = false;
 
+	/////////////////////////////////////////////////
+	/// Code to check against normal finish state ///
 	if ((state[0][0] == 1 || state[0][0] == 0) &&
 		(state[0][1] == 1 || state[0][1] == 2 || state[0][1] == 0) &&
 		(state[0][2] == 2 || state[0][2] == 3 || state[0][2] == 0) &&
@@ -156,8 +158,10 @@ bool CurrentState::checkFinishedState()
 		winner = true;
 	else
 		winner = false;
+		
 
 	return winner;
+	return false;
 }
 
 //////////////////////////////////////////////////////

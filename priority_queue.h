@@ -90,7 +90,6 @@ void PriorityQueue<T>::add(T* element, int &nodes_gen)
 		heap.add(element);
 		godHeap.push_back(element);
 		nodes_gen++;
-		//NODES_GEN++;
 	}
 
 	// If it has been inserted before then delete it
