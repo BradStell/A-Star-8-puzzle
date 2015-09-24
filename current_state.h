@@ -40,6 +40,7 @@ public:
 	int** getState();
 	void setParent(CurrentState* parent);
 	CurrentState* getParent();
+	friend bool operator< (CurrentState & a, CurrentState & b);
 };
 
 #endif //A_STAR_CURRENTSTATE_H

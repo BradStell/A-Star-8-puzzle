@@ -532,3 +532,8 @@ CurrentState* CurrentState::getParent()
 {
 	return parent;
 }
+
+bool operator< (CurrentState & a, CurrentState & b)
+{
+	return a.getHeuristic() < b.getHeuristic();
+}

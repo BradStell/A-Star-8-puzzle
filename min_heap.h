@@ -40,7 +40,7 @@ public:
 	T* remove();
 	bool isEmpty();
 	int size();
-	void showHeap();
+	void showHeap();	
 };
 
 
@@ -105,7 +105,7 @@ void MinHeap<T>::heapifyAdd()
 		T* item = heap[index];
 		T* parent = heap[p];
 
-		if (item->getHeuristic() < parent->getHeuristic()) {
+		if (item < parent) {
 			T* temp = heap[index];
 			heap[index] = heap[p];
 			heap[p] = temp;
@@ -175,13 +175,13 @@ void MinHeap<T>::heapifyRemove()
 
 		// Figure out which of the children has the lowest heuristic value
 		if (right < heap.size()) {
-			if (heap[right]->getHeuristic() < heap[left]->getHeuristic()) {
+			if (heap[right] < heap[left]) {
 				min = right;
 			}
 		}
 
 		// Check to see if the parent has a higher heuristic value than it's child with the lowest heuristic value
-		if (heap[index]->getHeuristic() > heap[min]->getHeuristic()) {
+		if (heap[index] > heap[min]) {
 
 			// Swap positions
 			T* temp = heap[index];
